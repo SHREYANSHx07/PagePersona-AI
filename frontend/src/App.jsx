@@ -4,7 +4,8 @@ import StepProgress from './components/StepProgress'
 import ResultsView from './components/ResultsView'
 import './App.css'
 
-const API_BASE = '/api'
+/** Dev: Vite proxies /api → Django. Production: same host must proxy /api, or set VITE_API_BASE when building. */
+const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
 
 export default function App() {
   const [phase, setPhase] = useState('input')       // 'input' | 'loading' | 'results' | 'error'
@@ -36,7 +37,21 @@ export default function App() {
         body: formData,
       })
 
-      const data = await response.json()
+      const raw = await response.text()
+      let data
+      try {
+        data = raw ? JSON.parse(raw) : {}
+      } catch {
+        const preview = raw.trim().slice(0, 140).replace(/\s+/g, ' ')
+        const deployHint =
+          'Usually the live site returned an HTML error page (404/502) instead of JSON because /api is not routed to Django. Fix: reverse-proxy /api to your backend, or rebuild the frontend with VITE_API_BASE set to your API root (e.g. https://your-api.onrender.com/api).'
+        const msg = `Server response was not JSON (HTTP ${response.status}). ${deployHint} Body starts with: "${preview}${raw.length > 140 ? '…' : ''}"`
+        setCurrentStep(3)
+        setStepError(msg)
+        setGlobalError(msg)
+        setPhase('error')
+        return
+      }
 
       if (!response.ok) {
         const errorMsg = data.error || 'An error occurred during personalization.'
@@ -57,7 +72,7 @@ export default function App() {
     } catch (err) {
       const msg =
         err.name === 'TypeError' && err.message.includes('fetch')
-          ? 'Cannot connect to the backend server. Please make sure the Django server is running on port 8000.'
+          ? 'Network error: cannot reach the API. If local, run Django on port 8000; if deployed, check VITE_API_BASE and that /api is proxied to Django.'
           : err.message || 'Unexpected error occurred.'
       setGlobalError(msg)
       setStepError(msg)
