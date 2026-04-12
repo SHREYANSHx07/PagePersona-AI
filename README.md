@@ -18,7 +18,7 @@ An end-to-end AI system that takes an **ad creative** + **landing page URL** and
 ```bash
 cd backend
 
-# Activate virtual environment (already created)
+# Activate virtual environment 
 source venv/bin/activate
 
 # Add your Gemini API key
@@ -37,7 +37,7 @@ Django runs at: **http://localhost:8000**
 ```bash
 cd frontend
 
-# Install dependencies (already done)
+# Install dependencies 
 npm install
 
 # Start dev server
